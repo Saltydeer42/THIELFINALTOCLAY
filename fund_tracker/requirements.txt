@@ -1,0 +1,5 @@
+python-dotenv>=1.0
+requests>=2.32
+pendulum>=3.0           # nicer datetime handling & tz aware
+pytest>=8.0
+requests-mock>=1.12

@@ -1,0 +1,25 @@
+name: Weekly Crunchbase Sync
+
+on:
+  workflow_dispatch:      # manual trigger
+  schedule:
+    - cron:  '0 9 * * 1'  # 09:00 UTC every Monday
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    env:
+      CRUNCHBASE_API_KEY: ${{ secrets.CRUNCHBASE_API_KEY }}
+      ZAPIER_WEBHOOK_URL: ${{ secrets.ZAPIER_WEBHOOK_URL }}
+      VC_FIRM_NAMES: ${{ secrets.VC_FIRM_NAMES }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install deps
+        run: pip install -r requirements.txt
+      - name: Run tests
+        run: pytest -q
+      - name: Execute pipeline
+        run: python -m fund_tracker.cli
