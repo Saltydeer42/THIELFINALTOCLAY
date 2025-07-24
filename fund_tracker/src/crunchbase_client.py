@@ -19,24 +19,28 @@ class CrunchbaseClient:
         """Return the JSON body for the Search API POST."""
         return {
             "field_ids": [
-                "investment_type", "announced_on", "money_raised_usd",
-                "investor_organization_identifier", "organization_identifier"
+                "identifier",
+                "announced_on",
+                "funded_organization_identifier",
+                "money_raised",
+                "investment_type",
+                "investor_identifiers"
             ],
             "order": [{"field_id": "announced_on", "sort": "desc"}],
             "query": [
                 {
                     "type": "predicate",
-                    "field_id": "investor_organization_identifier",
+                    "field_id": "investor_identifiers",
                     "operator_id": "includes",
-                    "values": [investor_id],
+                    "values": [investor_id]
                 },
                 {
                     "type": "predicate",
                     "field_id": "announced_on",
                     "operator_id": "gte",
-                    "values": [since_iso],
+                    "values": [since_iso]
                 }
-            ],
+            ]
         }
 
     def get_recent_deals(
@@ -56,14 +60,14 @@ class CrunchbaseClient:
 
         deals: List[InvestmentDeal] = []
         for row in rows:
-            org = row["properties"]["organization_identifier"]
+            org = row["properties"]["funded_organization_identifier"]
             deals.append(
                 InvestmentDeal(
                     vc_name=vc_name,
                     company_name=org["value"],
                     announced_date=row["properties"]["announced_on"],
                     round_type=row["properties"]["investment_type"],
-                    amount_usd=row["properties"].get("money_raised_usd"),
+                    amount_usd=row["properties"].get("money_raised", {"value": None})["value"],
                     crunchbase_url=f'https://www.crunchbase.com/organization/{org["permalink"]}',
                 )
             )

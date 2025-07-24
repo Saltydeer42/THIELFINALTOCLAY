@@ -31,15 +31,15 @@ class UuidCache:
         if vc_name in self._store:
             return self._store[vc_name]
 
-        url = "https://api.crunchbase.com/v4/autocomplete/organizations"
-        params = {"user_key": CRUNCHBASE_KEY, "query": vc_name}
+        url = "https://api.crunchbase.com/v4/data/autocompletes"
+        params = {"user_key": CRUNCHBASE_KEY, "query": vc_name.lower(), "collection_ids": "organizations"}
         resp = requests.get(url, params=params, timeout=20)
         resp.raise_for_status()
         hits = resp.json().get("entities", [])
         if not hits:
             _log.warning("No UUID found for %s", vc_name)
             return None
-        uuid = hits[0]["uuid"]
+        uuid = hits[0]["identifier"]["uuid"]
         self._store[vc_name] = uuid
         self.save()
         return uuid
