@@ -23,17 +23,18 @@ class CrunchbaseClient:
                 "investor_organization_identifier", "organization_identifier"
             ],
             "order": [{"field_id": "announced_on", "sort": "desc"}],
-            "query": {
-                "type": "predicate",
-                "field_id": "investor_organization_identifier",
-                "operator_id": "includes",
-                "values": [investor_id],
-            },
-            "filters": [
+            "query": [
                 {
+                    "type": "predicate",
+                    "field_id": "investor_organization_identifier",
+                    "operator_id": "includes",
+                    "values": [investor_id],
+                },
+                {
+                    "type": "predicate",
                     "field_id": "announced_on",
-                    "operator_id": "between",
-                    "values": [since_iso, pendulum.now().to_date_string()],
+                    "operator_id": "gte",
+                    "values": [since_iso],
                 }
             ],
         }
