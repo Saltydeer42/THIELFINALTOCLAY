@@ -11,7 +11,7 @@ _log = logging.getLogger(__name__)
 
 class CrunchbaseClient:
     BASE = "https://api.crunchbase.com/v4/data/searches/funding_rounds"
-    ORG = "https://api.crunchbase.com/v4/entities/organizations/{}"
+    ORG = "https://api.crunchbase.com/v4/data/entities/organizations/{}"
 
     def __init__(self, uuid_cache: UuidCache):
         self.cache = uuid_cache
@@ -22,8 +22,9 @@ class CrunchbaseClient:
         if org_uuid in self._org_cache:
             return self._org_cache[org_uuid]
         url = self.ORG.format(org_uuid)
+        params = {"user_key": CRUNCHBASE_KEY, "field_ids": "website"}
         try:
-            resp = requests.get(url, params={"user_key": CRUNCHBASE_KEY}, timeout=20)
+            resp = requests.get(url, params=params, timeout=20)
             resp.raise_for_status()
             props = resp.json().get("properties", {})
             website = (
@@ -85,6 +86,7 @@ class CrunchbaseClient:
         deals: List[InvestmentDeal] = []
         for row in rows:
             org = row["properties"]["funded_organization_identifier"]
+            website = self._get_website(org["uuid"]) or self._get_website(org["permalink"])
             deals.append(
                 InvestmentDeal(
                     vc_name=vc_name,
@@ -93,7 +95,7 @@ class CrunchbaseClient:
                     round_type=row["properties"]["investment_type"],
                     amount_usd=row["properties"].get("money_raised", {"value": None})["value"],
                     crunchbase_url=f'https://www.crunchbase.com/organization/{org["permalink"]}',
-                    company_url=self._get_website(org["uuid"]),
+                    company_url=website,
                 )
             )
         _log.info("%s – fetched %d deals", vc_name, len(deals))
