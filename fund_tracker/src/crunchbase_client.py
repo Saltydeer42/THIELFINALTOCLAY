@@ -11,9 +11,26 @@ _log = logging.getLogger(__name__)
 
 class CrunchbaseClient:
     BASE = "https://api.crunchbase.com/v4/data/searches/funding_rounds"
+    ORG = "https://api.crunchbase.com/v4/entities/organizations/{}"
 
     def __init__(self, uuid_cache: UuidCache):
         self.cache = uuid_cache
+        self._org_cache: dict[str, str | None] = {}
+
+    def _get_website(self, org_uuid: str) -> str | None:
+        """Return the organization's website URL (cached)."""
+        if org_uuid in self._org_cache:
+            return self._org_cache[org_uuid]
+        url = self.ORG.format(org_uuid)
+        try:
+            resp = requests.get(url, params={"user_key": CRUNCHBASE_KEY}, timeout=20)
+            resp.raise_for_status()
+            website = resp.json().get("properties", {}).get("website")
+        except Exception as e:
+            _log.warning("Website lookup failed for %s: %s", org_uuid, e)
+            website = None
+        self._org_cache[org_uuid] = website
+        return website
 
     def _search_body(self, investor_id: str, since_iso: str) -> dict:
         """Return the JSON body for the Search API POST."""
@@ -69,6 +86,7 @@ class CrunchbaseClient:
                     round_type=row["properties"]["investment_type"],
                     amount_usd=row["properties"].get("money_raised", {"value": None})["value"],
                     crunchbase_url=f'https://www.crunchbase.com/organization/{org["permalink"]}',
+                    company_url=self._get_website(org["uuid"]),
                 )
             )
         _log.info("%s – fetched %d deals", vc_name, len(deals))
