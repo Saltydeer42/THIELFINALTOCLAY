@@ -1,0 +1,33 @@
+name: Weekly VC Fund Tracker
+
+on:
+  schedule:
+    - cron: '0 12 * * 1'  # every Monday 12:00 UTC
+  workflow_dispatch:
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install -r fund_tracker/requirements.txt
+
+      - name: Run pipeline
+        env:
+          CRUNCHBASE_API_KEY: ${{ secrets.CRUNCHBASE_API_KEY }}
+          ZAPIER_WEBHOOK_URL: ${{ secrets.ZAPIER_WEBHOOK_URL }}
+          VC_FIRM_NAMES: ${{ secrets.VC_FIRM_NAMES }}
+        run: |
+          source .venv/bin/activate
+          PYTHONPATH=. python -m fund_tracker.src.cli 
