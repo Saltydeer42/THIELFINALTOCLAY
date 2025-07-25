@@ -25,7 +25,14 @@ class CrunchbaseClient:
         try:
             resp = requests.get(url, params={"user_key": CRUNCHBASE_KEY}, timeout=20)
             resp.raise_for_status()
-            website = resp.json().get("properties", {}).get("website")
+            props = resp.json().get("properties", {})
+            website = (
+                props.get("homepage_url")
+                or props.get("website")
+                or props.get("website_url")
+            )
+            if website:
+                _log.debug("Website for %s: %s", org_uuid, website)
         except Exception as e:
             _log.warning("Website lookup failed for %s: %s", org_uuid, e)
             website = None
