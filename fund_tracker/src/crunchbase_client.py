@@ -27,11 +27,16 @@ class CrunchbaseClient:
             resp = requests.get(url, params=params, timeout=20)
             resp.raise_for_status()
             props = resp.json().get("properties", {})
-            website = (
+            website_obj = (
                 props.get("homepage_url")
                 or props.get("website")
                 or props.get("website_url")
             )
+            # Extract plain string from Crunchbase rich object
+            if isinstance(website_obj, dict):
+                website = website_obj.get("value")
+            else:
+                website = website_obj
             if website:
                 _log.debug("Website for %s: %s", org_uuid, website)
         except Exception as e:
@@ -54,11 +59,11 @@ class CrunchbaseClient:
             "order": [{"field_id": "announced_on", "sort": "desc"}],
             "query": [
                 {
-                    "type": "predicate",
+                "type": "predicate",
                     "field_id": "investor_identifiers",
-                    "operator_id": "includes",
+                "operator_id": "includes",
                     "values": [investor_id]
-                },
+            },
                 {
                     "type": "predicate",
                     "field_id": "announced_on",
