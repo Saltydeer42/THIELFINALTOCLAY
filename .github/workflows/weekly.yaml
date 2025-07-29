@@ -2,7 +2,7 @@ name: Weekly VC Fund Tracker
 
 on:
   schedule:
-    - cron: '30 12 * * 1'  # every Monday 12:30 UTC ≈ 08:30 Eastern
+    - cron: '30 10 * * 1'  # every Monday 10:30 UTC ≈ 06:30 Eastern
   workflow_dispatch:
 
 jobs:
