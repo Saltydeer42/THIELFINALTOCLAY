@@ -15,15 +15,14 @@ class CrunchbaseClient:
     def __init__(self, uuid_cache: UuidCache):
         self.cache = uuid_cache
 
-    def _search_body(self, investor_id: str, since_iso: str) -> dict:
+    def _search_body(self, investor_id: str, since_iso: str, investor_field: str = "investor_identifiers") -> dict:
         """Return the JSON body for the Search API POST."""
         return {
             "field_ids": [
                 "investment_type",
                 "announced_on",
                 "money_raised_usd",
-                # Use unified investor_identifiers (supports people and orgs)
-                "investor_identifiers",
+                investor_field,
                 "funded_organization_identifier",
                 "organization_identifier",
             ],
@@ -31,7 +30,7 @@ class CrunchbaseClient:
             "query": [
                 {
                     "type": "predicate",
-                    "field_id": "investor_identifiers",
+                    "field_id": investor_field,
                     "operator_id": "includes",
                     "values": [investor_id]
                 },
@@ -52,12 +51,21 @@ class CrunchbaseClient:
             return []
 
         since = pendulum.now().subtract(days=days_back).to_date_string()
-        body = self._search_body(vc_uuid, since)
         params = {"user_key": CRUNCHBASE_KEY}
 
-        resp = requests.post(self.BASE, params=params, json=body, timeout=30)
-        resp.raise_for_status()
-        rows = resp.json().get("entities", [])
+        rows = []
+        last_error_text = None
+        for field in ("investor_identifiers", "investor_organization_identifier", "investor_identifier"):
+            body = self._search_body(vc_uuid, since, investor_field=field)
+            resp = requests.post(self.BASE, params=params, json=body, timeout=30)
+            if resp.status_code >= 400:
+                last_error_text = resp.text
+                continue
+            resp.raise_for_status()
+            rows = resp.json().get("entities", [])
+            break
+        if not rows and last_error_text:
+            _log.error("Crunchbase search failed for %s: %s", vc_name, last_error_text)
 
         deals: List[InvestmentDeal] = []
         for row in rows:
