@@ -22,9 +22,8 @@ class CrunchbaseClient:
                 "investment_type",
                 "announced_on",
                 "money_raised",
-                # Include both organization and person investor identifiers to support either
-                "investor_organization_identifier",
-                "investor_identifier",
+                # Use unified investor_identifiers (supports people and orgs)
+                "investor_identifiers",
                 "funded_organization_identifier",
                 "organization_identifier",
             ],
@@ -32,13 +31,7 @@ class CrunchbaseClient:
             "query": [
                 {
                     "type": "predicate",
-                    "field_id": "investor_organization_identifier",
-                    "operator_id": "includes",
-                    "values": [investor_id]
-                },
-                {
-                    "type": "predicate",
-                    "field_id": "investor_identifier",
+                    "field_id": "investor_identifiers",
                     "operator_id": "includes",
                     "values": [investor_id]
                 },
