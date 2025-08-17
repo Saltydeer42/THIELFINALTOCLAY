@@ -111,23 +111,20 @@ class CrunchbaseClient:
 
         deals: List[InvestmentDeal] = []
         for row in rows:
-            props = row.get("properties", {})
+            props = row["properties"]
             org = (
                 props.get("funded_organization_identifier")
                 or props.get("organization_identifier")
             )
             if org is None:
                 continue
-            amount = props.get("money_raised_usd")
-            if amount is None and isinstance(props.get("money_raised"), dict):
-                amount = props.get("money_raised", {}).get("value")
             deals.append(
                 InvestmentDeal(
                     vc_name=vc_name,
                     company_name=org["value"],
                     announced_date=props["announced_on"],
                     round_type=props["investment_type"],
-                    amount_usd=amount,
+                    amount_usd=props.get("money_raised", {"value": None})["value"],
                     crunchbase_url=f'https://www.crunchbase.com/organization/{org["permalink"]}',
                 )
             )
