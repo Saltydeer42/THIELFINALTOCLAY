@@ -15,7 +15,13 @@ class CrunchbaseClient:
     def __init__(self, uuid_cache: UuidCache):
         self.cache = uuid_cache
 
-    def _search_body(self, investor_id: str, since_iso: str | None, investor_field: str = "investor_identifiers") -> dict:
+    def _search_body(
+        self,
+        investor_id: str,
+        since_iso: str | None,
+        investor_field: str = "investor_identifiers",
+        include_org_identifier: bool = True,
+    ) -> dict:
         """Return the JSON body for the Search API POST."""
         query = [
             {
@@ -34,15 +40,17 @@ class CrunchbaseClient:
                     "values": [since_iso]
                 }
             )
+        field_ids = [
+            "investment_type",
+            "announced_on",
+            "money_raised",
+            investor_field,
+            "funded_organization_identifier",
+        ]
+        if include_org_identifier:
+            field_ids.append("organization_identifier")
         return {
-            "field_ids": [
-                "investment_type",
-                "announced_on",
-                "money_raised",
-                investor_field,
-                "funded_organization_identifier",
-                "organization_identifier",
-            ],
+            "field_ids": field_ids,
             "order": [{"field_id": "announced_on", "sort": "desc"}],
             "query": query,
         }
@@ -61,11 +69,42 @@ class CrunchbaseClient:
             since = pendulum.now().subtract(days=days_back).to_date_string()
         params = {"user_key": CRUNCHBASE_KEY}
 
-        body = self._search_body(vc_uuid, since, investor_field="investor_identifiers")
-        resp = requests.post(self.BASE, params=params, json=body, timeout=30)
+        # Try with both identifiers first; on MD101 for organization_identifier, retry without it
+        rows = []
+        resp = requests.post(
+            self.BASE,
+            params=params,
+            json=self._search_body(vc_uuid, since, investor_field="investor_identifiers", include_org_identifier=True),
+            timeout=30,
+        )
         if resp.status_code >= 400:
-            _log.error("Crunchbase search failed for %s: %s", vc_name, resp.text)
-            rows = []
+            error_text = resp.text
+            try:
+                errors = resp.json()
+            except Exception:
+                errors = None
+            invalid_org_identifier = False
+            if isinstance(errors, list):
+                invalid_org_identifier = any(
+                    isinstance(e, dict) and e.get("field_id") == "organization_identifier" for e in errors
+                )
+            if not invalid_org_identifier and "organization_identifier" not in error_text:
+                _log.error("Crunchbase search failed for %s: %s", vc_name, error_text)
+            if invalid_org_identifier or "organization_identifier" in error_text:
+                resp2 = requests.post(
+                    self.BASE,
+                    params=params,
+                    json=self._search_body(
+                        vc_uuid, since, investor_field="investor_identifiers", include_org_identifier=False
+                    ),
+                    timeout=30,
+                )
+                if resp2.status_code >= 400:
+                    _log.error("Crunchbase search failed for %s: %s", vc_name, resp2.text)
+                    rows = []
+                else:
+                    resp2.raise_for_status()
+                    rows = resp2.json().get("entities", [])
         else:
             resp.raise_for_status()
             rows = resp.json().get("entities", [])
