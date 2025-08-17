@@ -61,19 +61,14 @@ class CrunchbaseClient:
             since = pendulum.now().subtract(days=days_back).to_date_string()
         params = {"user_key": CRUNCHBASE_KEY}
 
-        rows = []
-        last_error_text = None
-        for field in ("investor_identifiers", "investor_organization_identifier"):
-            body = self._search_body(vc_uuid, since, investor_field=field)
-            resp = requests.post(self.BASE, params=params, json=body, timeout=30)
-            if resp.status_code >= 400:
-                last_error_text = resp.text
-                continue
+        body = self._search_body(vc_uuid, since, investor_field="investor_identifiers")
+        resp = requests.post(self.BASE, params=params, json=body, timeout=30)
+        if resp.status_code >= 400:
+            _log.error("Crunchbase search failed for %s: %s", vc_name, resp.text)
+            rows = []
+        else:
             resp.raise_for_status()
             rows = resp.json().get("entities", [])
-            break
-        if not rows and last_error_text:
-            _log.error("Crunchbase search failed for %s: %s", vc_name, last_error_text)
 
         deals: List[InvestmentDeal] = []
         for row in rows:
