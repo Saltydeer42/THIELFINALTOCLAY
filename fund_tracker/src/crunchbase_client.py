@@ -21,9 +21,10 @@ class CrunchbaseClient:
             "field_ids": [
                 "investment_type",
                 "announced_on",
-                "money_raised_usd",
+                "money_raised",
                 "investor_organization_identifier",
-                "organization_identifier"
+                "funded_organization_identifier",
+                "organization_identifier",
             ],
             "order": [{"field_id": "announced_on", "sort": "desc"}],
             "query": [
@@ -59,14 +60,20 @@ class CrunchbaseClient:
 
         deals: List[InvestmentDeal] = []
         for row in rows:
-            org = row["properties"]["organization_identifier"]
+            props = row.get("properties", {})
+            org = (
+                props.get("funded_organization_identifier")
+                or props.get("organization_identifier")
+            )
+            if org is None:
+                continue
             deals.append(
                 InvestmentDeal(
                     vc_name=vc_name,
                     company_name=org["value"],
-                    announced_date=row["properties"]["announced_on"],
-                    round_type=row["properties"]["investment_type"],
-                    amount_usd=row["properties"].get("money_raised_usd"),
+                    announced_date=props["announced_on"],
+                    round_type=props["investment_type"],
+                    amount_usd=props.get("money_raised", {"value": None})["value"],
                     crunchbase_url=f'https://www.crunchbase.com/organization/{org["permalink"]}',
                 )
             )

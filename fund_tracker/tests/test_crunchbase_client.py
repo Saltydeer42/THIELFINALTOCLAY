@@ -24,7 +24,7 @@ def test_get_recent_deals(rm, tmp_path):
                         },
                         "announced_on": pendulum.now().to_date_string(),
                         "investment_type": "Seed",
-                        "money_raised_usd": 5000000,
+                        "money_raised": {"value": 5000000},
                     }
                 }
             ]
@@ -35,8 +35,8 @@ def test_get_recent_deals(rm, tmp_path):
 
     assert rm.last_request.json() == {
         "field_ids": [
-            "investment_type", "announced_on", "money_raised_usd",
-            "investor_organization_identifier", "organization_identifier"
+            "investment_type", "announced_on", "money_raised",
+            "investor_organization_identifier", "funded_organization_identifier", "organization_identifier"
         ],
         "order": [{"field_id": "announced_on", "sort": "desc"}],
         "query": [
