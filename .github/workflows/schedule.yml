@@ -27,7 +27,8 @@ jobs:
           CRUNCHBASE_API_KEY: ${{ secrets.CRUNCHBASE_API_KEY }}
           ZAPIER_WEBHOOK_URL: ${{ secrets.ZAPIER_WEBHOOK_URL }}
           VC_FIRM_NAMES: ${{ secrets.VC_FIRM_NAMES }}
+        working-directory: fund_tracker
         run: |
-          python -m fund_tracker.cli
+          python -m src.cli
 
 
