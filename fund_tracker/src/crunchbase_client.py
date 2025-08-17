@@ -11,9 +11,11 @@ _log = logging.getLogger(__name__)
 
 class CrunchbaseClient:
     BASE = "https://api.crunchbase.com/v4/data/searches/funding_rounds"
+    ORG = "https://api.crunchbase.com/v4/data/entities/organizations/{}"
 
     def __init__(self, uuid_cache: UuidCache):
         self.cache = uuid_cache
+        self._org_cache: dict[str, str | None] = {}
 
     def _search_body(
         self,
@@ -54,6 +56,29 @@ class CrunchbaseClient:
             "order": [{"field_id": "announced_on", "sort": "desc"}],
             "query": query,
         }
+
+    def _get_website(self, org_uuid: str) -> str | None:
+        if org_uuid in self._org_cache:
+            return self._org_cache[org_uuid]
+
+        url = self.ORG.format(org_uuid)
+        params = {"user_key": CRUNCHBASE_KEY, "field_ids": "website"}
+        try:
+            resp = requests.get(url, params=params, timeout=20)
+            resp.raise_for_status()
+            props = resp.json().get("properties", {})
+            website_raw = (
+                props.get("homepage_url")
+                or props.get("website")
+                or props.get("website_url")
+            )
+            website = website_raw.get("value") if isinstance(website_raw, dict) else website_raw
+        except Exception as e:
+            _log.warning("Website lookup failed for %s: %s", org_uuid, e)
+            website = None
+
+        self._org_cache[org_uuid] = website
+        return website
 
     def get_recent_deals(
         self, vc_name: str, days_back: int = 7
@@ -118,6 +143,15 @@ class CrunchbaseClient:
             )
             if org is None:
                 continue
+            # Fetch company website using org UUID; fall back to permalink if needed
+            website = None
+            if isinstance(org, dict):
+                org_uuid = org.get("uuid") or org.get("identifier", {}).get("uuid")
+                if org_uuid:
+                    website = self._get_website(org_uuid)
+                if website is None and org.get("permalink"):
+                    # Some accounts may allow fetching by permalink as identifier
+                    website = self._get_website(org["permalink"])  # cached if previously resolved
             deals.append(
                 InvestmentDeal(
                     vc_name=vc_name,
@@ -126,6 +160,7 @@ class CrunchbaseClient:
                     round_type=props["investment_type"],
                     amount_usd=props.get("money_raised", {"value": None})["value"],
                     crunchbase_url=f'https://www.crunchbase.com/organization/{org["permalink"]}',
+                    company_url=website,
                 )
             )
         _log.info("%s – fetched %d deals", vc_name, len(deals))

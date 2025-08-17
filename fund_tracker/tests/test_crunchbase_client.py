@@ -1,4 +1,5 @@
 import pendulum
+import re
 import sys
 import os
 
@@ -30,10 +31,15 @@ def test_get_recent_deals(rm, tmp_path):
             ]
         },
     )
+    # Mock organization website lookup (allow any query params)
+    rm.get(re.compile(r"https://api\.crunchbase\.com/v4/data/entities/organizations/acme-co.*"),
+           json={"properties": {"website": {"value": "https://acme.com"}}})
     cb = CrunchbaseClient(cache)
     deals = cb.get_recent_deals("VC", days_back=7)
 
-    assert rm.last_request.json() == {
+    # Ensure the search POST body matches expectation (last request may be the website GET)
+    search_req = next(r for r in rm.request_history if r.method == 'POST' and r.url.startswith("https://api.crunchbase.com/v4/data/searches/funding_rounds"))
+    assert search_req.json() == {
         "field_ids": [
             "investment_type", "announced_on", "money_raised",
             "investor_identifiers",

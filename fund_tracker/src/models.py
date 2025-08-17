@@ -9,4 +9,4 @@ class InvestmentDeal:
     round_type: str
     amount_usd: float | None
     crunchbase_url: str
-    # Any other fields Clay might need
+    company_url: str | None = None
