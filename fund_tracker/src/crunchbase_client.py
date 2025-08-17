@@ -15,32 +15,36 @@ class CrunchbaseClient:
     def __init__(self, uuid_cache: UuidCache):
         self.cache = uuid_cache
 
-    def _search_body(self, investor_id: str, since_iso: str, investor_field: str = "investor_identifiers") -> dict:
+    def _search_body(self, investor_id: str, since_iso: str | None, investor_field: str = "investor_identifiers") -> dict:
         """Return the JSON body for the Search API POST."""
-        return {
-            "field_ids": [
-                "investment_type",
-                "announced_on",
-                "money_raised_usd",
-                investor_field,
-                "funded_organization_identifier",
-                "organization_identifier",
-            ],
-            "order": [{"field_id": "announced_on", "sort": "desc"}],
-            "query": [
-                {
-                    "type": "predicate",
-                    "field_id": investor_field,
-                    "operator_id": "includes",
-                    "values": [investor_id]
-                },
+        query = [
+            {
+                "type": "predicate",
+                "field_id": investor_field,
+                "operator_id": "includes",
+                "values": [investor_id]
+            }
+        ]
+        if since_iso:
+            query.append(
                 {
                     "type": "predicate",
                     "field_id": "announced_on",
                     "operator_id": "gte",
                     "values": [since_iso]
                 }
-            ]
+            )
+        return {
+            "field_ids": [
+                "investment_type",
+                "announced_on",
+                "money_raised",
+                investor_field,
+                "funded_organization_identifier",
+                "organization_identifier",
+            ],
+            "order": [{"field_id": "announced_on", "sort": "desc"}],
+            "query": query,
         }
 
     def get_recent_deals(
@@ -50,7 +54,11 @@ class CrunchbaseClient:
         if not vc_uuid:
             return []
 
-        since = pendulum.now().subtract(days=days_back).to_date_string()
+        since: str | None
+        if days_back is None:
+            since = None
+        else:
+            since = pendulum.now().subtract(days=days_back).to_date_string()
         params = {"user_key": CRUNCHBASE_KEY}
 
         rows = []

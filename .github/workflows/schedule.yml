@@ -3,7 +3,12 @@ name: Thiel funding tracker schedule
 on:
   schedule:
     - cron: '0 9 * * *'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      days_back:
+        description: 'Days back to fetch (use ALL for full backfill)'
+        required: false
+        default: '7'
 
 jobs:
   run:
@@ -27,6 +32,7 @@ jobs:
           CRUNCHBASE_API_KEY: ${{ secrets.CRUNCHBASE_API_KEY }}
           ZAPIER_WEBHOOK_URL: ${{ secrets.ZAPIER_WEBHOOK_URL }}
           VC_FIRM_NAMES: ${{ secrets.VC_FIRM_NAMES }}
+          DAYS_BACK: ${{ github.event.inputs.days_back }}
         working-directory: fund_tracker
         run: |
           python -m src.cli

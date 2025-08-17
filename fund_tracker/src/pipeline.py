@@ -6,7 +6,7 @@ import logging
 from itertools import chain
 from typing import List
 
-from .config import VC_FIRM_NAMES
+from .config import VC_FIRM_NAMES, DEFAULT_DAYS_BACK
 from .crunchbase_client import CrunchbaseClient
 from .uuid_cache import UuidCache
 from .zapier_client import ZapierClient
@@ -20,7 +20,10 @@ def run_pipeline() -> List[InvestmentDeal]:
     zap = ZapierClient()
 
     all_deals: List[InvestmentDeal] = list(
-        chain.from_iterable(cb.get_recent_deals(name) for name in VC_FIRM_NAMES)
+        chain.from_iterable(
+            cb.get_recent_deals(name, days_back=DEFAULT_DAYS_BACK)
+            for name in VC_FIRM_NAMES
+        )
     )
 
     # Deduplicate (same company may appear twice if >1 VC in round)
