@@ -63,7 +63,7 @@ class CrunchbaseClient:
 
         rows = []
         last_error_text = None
-        for field in ("investor_identifiers", "investor_organization_identifier", "investor_identifier"):
+        for field in ("investor_identifiers", "investor_organization_identifier"):
             body = self._search_body(vc_uuid, since, investor_field=field)
             resp = requests.post(self.BASE, params=params, json=body, timeout=30)
             if resp.status_code >= 400:

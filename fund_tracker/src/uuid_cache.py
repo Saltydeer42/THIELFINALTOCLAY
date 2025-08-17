@@ -36,7 +36,7 @@ class UuidCache:
         params = {
             "user_key": CRUNCHBASE_KEY,
             "query": vc_name,
-            "collection_ids": "person.investors,organization.investors,organizations",
+            "collection_ids": "person.investors,principal.investors,organization.investors,organizations",
             "limit": 10,
         }
         resp = requests.get(url, params=params, timeout=20)
