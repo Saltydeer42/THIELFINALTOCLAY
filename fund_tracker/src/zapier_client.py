@@ -1,4 +1,5 @@
 import logging
+import time
 import requests
 from typing import List
 
@@ -12,10 +13,15 @@ class ZapierClient:
         if not deals:
             _log.info("No deals to send – skipping webhook.")
             return
-        payload = {
-            "deals": [deal.__dict__ for deal in deals],
-            "total": len(deals),
-        }
-        resp = requests.post(ZAPIER_WEBHOOK_URL, json=payload, timeout=30)
-        resp.raise_for_status()
-        _log.info("Sent %d deals to Zapier", len(deals))
+        sent = 0
+        for deal in deals:
+            payload = deal.__dict__
+            resp = requests.post(ZAPIER_WEBHOOK_URL, json=payload, timeout=30)
+            try:
+                resp.raise_for_status()
+                sent += 1
+                _log.info("Sent deal to Zapier: %s – %s", deal.company_name, deal.announced_date)
+            finally:
+                # Zapier pacing
+                time.sleep(1)
+        _log.info("Sent %d/%d deals to Zapier", sent, len(deals))

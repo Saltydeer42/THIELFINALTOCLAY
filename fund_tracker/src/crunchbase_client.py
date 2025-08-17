@@ -19,18 +19,17 @@ class CrunchbaseClient:
         """Return the JSON body for the Search API POST."""
         return {
             "field_ids": [
-                "identifier",
-                "announced_on",
-                "funded_organization_identifier",
-                "money_raised",
                 "investment_type",
-                "investor_identifiers"
+                "announced_on",
+                "money_raised_usd",
+                "investor_organization_identifier",
+                "organization_identifier"
             ],
             "order": [{"field_id": "announced_on", "sort": "desc"}],
             "query": [
                 {
                     "type": "predicate",
-                    "field_id": "investor_identifiers",
+                    "field_id": "investor_organization_identifier",
                     "operator_id": "includes",
                     "values": [investor_id]
                 },
@@ -60,14 +59,14 @@ class CrunchbaseClient:
 
         deals: List[InvestmentDeal] = []
         for row in rows:
-            org = row["properties"]["funded_organization_identifier"]
+            org = row["properties"]["organization_identifier"]
             deals.append(
                 InvestmentDeal(
                     vc_name=vc_name,
                     company_name=org["value"],
                     announced_date=row["properties"]["announced_on"],
                     round_type=row["properties"]["investment_type"],
-                    amount_usd=row["properties"].get("money_raised", {"value": None})["value"],
+                    amount_usd=row["properties"].get("money_raised_usd"),
                     crunchbase_url=f'https://www.crunchbase.com/organization/{org["permalink"]}',
                 )
             )
