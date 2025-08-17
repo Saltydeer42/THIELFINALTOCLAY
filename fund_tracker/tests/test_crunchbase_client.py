@@ -36,13 +36,20 @@ def test_get_recent_deals(rm, tmp_path):
     assert rm.last_request.json() == {
         "field_ids": [
             "investment_type", "announced_on", "money_raised",
-            "investor_organization_identifier", "funded_organization_identifier", "organization_identifier"
+            "investor_organization_identifier", "investor_identifier",
+            "funded_organization_identifier", "organization_identifier"
         ],
         "order": [{"field_id": "announced_on", "sort": "desc"}],
         "query": [
             {
                 "type": "predicate",
                 "field_id": "investor_organization_identifier",
+                "operator_id": "includes",
+                "values": ["uuid‑vc"],
+            },
+            {
+                "type": "predicate",
+                "field_id": "investor_identifier",
                 "operator_id": "includes",
                 "values": ["uuid‑vc"],
             },

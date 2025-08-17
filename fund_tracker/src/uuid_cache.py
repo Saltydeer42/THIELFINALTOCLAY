@@ -31,17 +31,23 @@ class UuidCache:
         if vc_name in self._store:
             return self._store[vc_name]
 
-        url = "https://api.crunchbase.com/v4/autocomplete/organizations"
-        params = {"user_key": CRUNCHBASE_KEY, "query": vc_name}
+        url = "https://api.crunchbase.com/v4/data/autocompletes"
+        # Support both people (e.g., Peter Thiel) and organizations (e.g., Thiel Capital)
+        params = {
+            "user_key": CRUNCHBASE_KEY,
+            "query": vc_name,
+            "collection_ids": "person.investors,organization.investors,organizations",
+            "limit": 10,
+        }
         resp = requests.get(url, params=params, timeout=20)
         resp.raise_for_status()
         hits = resp.json().get("entities", [])
         if not hits:
             _log.warning("No UUID found for %s", vc_name)
             return None
-        # Tests expect a simplified payload with uuid at top-level
+        # Prefer identifier.uuid if present; fall back to top-level uuid for test fixtures
         first = hits[0]
-        uuid = first.get("uuid") or first.get("identifier", {}).get("uuid")
+        uuid = first.get("identifier", {}).get("uuid") or first.get("uuid")
         self._store[vc_name] = uuid
         self.save()
         return uuid

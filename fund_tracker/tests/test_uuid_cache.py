@@ -8,7 +8,7 @@ from src.uuid_cache import UuidCache
 def test_cache_roundtrip(tmp_path, rm):
     path = tmp_path / "cache.json"
     rm.get(
-        "https://api.crunchbase.com/v4/autocomplete/organizations",
+        "https://api.crunchbase.com/v4/data/autocompletes",
         json={"entities": [{"uuid": "123", "permalink": "dummy"}]},
     )
     cache = UuidCache(path)
