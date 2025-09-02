@@ -16,12 +16,13 @@ class ZapierClient:
         sent = 0
         for deal in deals:
             payload = deal.__dict__
-            resp = requests.post(ZAPIER_WEBHOOK_URL, json=payload, timeout=30)
             try:
+                resp = requests.post(ZAPIER_WEBHOOK_URL, json=payload, timeout=30)
                 resp.raise_for_status()
                 sent += 1
                 _log.info("Sent deal to Zapier: %s – %s", deal.company_name, deal.announced_date)
+            except Exception as e:
+                _log.error("Zapier POST failed for %s (%s): %s", deal.company_name, deal.announced_date, e)
             finally:
-                # Zapier pacing
                 time.sleep(1)
         _log.info("Sent %d/%d deals to Zapier", sent, len(deals))
